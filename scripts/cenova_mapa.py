@@ -163,7 +163,8 @@ def parsuj_mapu(ws) -> list[dict]:
             continue
         lokality.append({
             "kraj": f"{KRAJE.index(kraj) + 1:02d}",
-            "ku": r[1],
+            # u obcí bez ORP je jednotkou celá obec a katastr MF nevyplňuje
+            "ku": r[1] or r[2],
             "obec": r[2],
             "kod": cislo(r[3]),
             "vk": vk,
@@ -209,6 +210,7 @@ def zapis(lokality: list[dict], info: dict, nazev: str, url: str | None) -> None
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--soubor", help="lokální XLSX místo stažení")
+    ap.add_argument("--vynutit", action="store_true", help="přegenerovat i beze změny souboru MF")
     args = ap.parse_args()
     try:
         if args.soubor:
@@ -217,7 +219,7 @@ def main() -> int:
         else:
             url, nazev = najdi_nejnovejsi()
             index_soubor = VYSTUP / "index.json"
-            if index_soubor.exists():
+            if index_soubor.exists() and not args.vynutit:
                 stary = json.loads(index_soubor.read_text(encoding="utf-8"))["meta"].get("soubor")
                 if stary == nazev:
                     log(f"[OK] Beze změny, data už jsou ze souboru {nazev}")
