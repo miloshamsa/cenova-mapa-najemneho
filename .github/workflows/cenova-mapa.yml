@@ -1,0 +1,41 @@
+name: Cenová mapa nájemného (MF ČR)
+
+# MF vydává mapu do 45 dnů po konci čtvrtletí (15.2., 15.5., 15.8., 15.11.).
+# Kontrolujeme 16. a 25. den těch měsíců (pojistka pro zpoždění); když je soubor
+# beze změny, nic se necommitne. Ruční spuštění: Actions -> Run workflow.
+on:
+  schedule:
+    - cron: "17 3 16,25 2,5,8,11 *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  aktualizace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r scripts/requirements.txt
+      # Při změně struktury souboru skript skončí chybou -> běh spadne a GitHub
+      # pošle e-mail; stará data na webu zůstanou.
+      - run: python scripts/cenova_mapa.py
+      - name: Commit nových dat
+        run: |
+          if [ -z "$(git status --porcelain -- data)" ]; then
+            echo "Data beze změny"
+            exit 0
+          fi
+          git config user.name "cenova-mapa-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git commit -m "Cenová mapa nájemného: $(python -c "import json;print(json.load(open('data/index.json'))['meta']['soubor'])")"
+          git push
+          # jsDelivr drží @main v cache až 7 dní - po aktualizaci ji vyprázdnit
+          for f in data/*.json; do
+            curl -fsS "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@main/$f" > /dev/null || echo "purge selhal: $f"
+          done
