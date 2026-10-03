@@ -33,6 +33,8 @@ o 22 % výš (polovina inzerátů +4 až +42 %).
 
 GitHub Action `cenova-mapa.yml` běží 16. a 25. února, května, srpna a listopadu
 (MF vydává do 45 dnů po čtvrtletí). Nový soubor commitne a vyprázdní cache jsDelivr.
+Adresa `@main` na jsDelivr se přesto obnoví až do 12 hodin (CDN si drží, na který
+commit větev ukazuje); konkrétní commit `@<hash>` je aktuální hned.
 
 Když MF změní strukturu souboru, `scripts/cenova_mapa.py` skončí chybou, nic
 nepřepíše a běh Action spadne (přijde e-mail). Ruční běh:
